@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4chan-style Posting Site</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .post {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .post img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+        #postForm {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Anonymous Posting Board</h1>
+
+<!-- Post Form -->
+<form id="postForm">
+    <textarea id="postText" placeholder="Write your post here..." rows="4" style="width: 100%;"></textarea><br>
+    <input type="file" id="postMedia"><br><br>
+    <button type="submit">Post</button>
+</form>
+
+<!-- Posts Container -->
+<div id="posts"></div>
+
+<script>
+    // Firebase configuration (from your provided config)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDf_y4A41vedtZgpEIQzWQgWbqtRd6-Dyg",
+        authDomain: "wombworld-61121.firebaseapp.com",
+        projectId: "wombworld-61121",
+        storageBucket: "wombworld-61121.appspot.com",
+        messagingSenderId: "269013627459",
+        appId: "1:269013627459:web:164dd6284b400e8cf85af6",
+        measurementId: "G-XN7835CBSF"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    // Handle form submission
+    document.getElementById('postForm').addEventListener('submit', async (e) => {
+        e.preventDefault(); // Prevent form refresh
+
+        const postText = document.getElementById('postText').value;
+        const postMedia = document.getElementById('postMedia').files[0];
+        const timestamp = new Date();
+        let mediaUrl = '';
+
+        // Upload media to Firebase Storage (if there's a file)
+        if (postMedia) {
+            const mediaRef = storage.ref('media/' + postMedia.name);
+            await mediaRef.put(postMedia); // Upload file
+            mediaUrl = await mediaRef.getDownloadURL(); // Get the download URL for the media
+        }
+
+        // Save the post data to Firestore
+        await db.collection('posts').add({
+            content: postText,
+            mediaUrl: mediaUrl,
+            timestamp: timestamp,
+            anonymousUsername: `Anon${Math.floor(Math.random() * 10000)}`
+        });
+
+        // Clear the form after posting
+        document.getElementById('postText').value = '';
+        document.getElementById('postMedia').value = '';
+    });
+
+    // Real-time listener for new posts
+    const postsContainer = document.getElementById('posts');
+    db.collection('posts').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
+        postsContainer.innerHTML = ''; // Clear existing posts
+        snapshot.forEach((doc) => {
+            const post = doc.data();
+            const postElement = document.createElement('div');
+            postElement.classList.add('post');
+            postElement.innerHTML = `
+                <p><strong>${post.anonymousUsername}</strong> at ${post.timestamp.toDate().toLocaleString()}</p>
+                <p>${post.content}</p>
+                ${post.mediaUrl ? `<img src="${post.mediaUrl}" alt="media" />` : ''}
+            `;
+            postsContainer.appendChild(postElement);
+        });
+    });
+</script>
+
+</body>
+</html>
