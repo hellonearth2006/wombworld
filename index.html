@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>klara's location</title>
+    <title>Klara's Location</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,70 +14,71 @@
         .post, .form-container {
             background-color: rgba(0, 0, 0, 0.8);
             border: 1px solid #444;
-            margin: 20px auto;
+            margin: 10px auto;
             padding: 10px;
-            max-width: 650px;
+            max-width: 600px;
             border-radius: 4px;
             box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
             position: relative;
         }
         .post-header, .form-container input, .form-container textarea, .form-container button {
-            margin-bottom: 10px;
-            font-size: 15px;
+            font-size: 14px;
+            margin-bottom: 5px;
         }
-        .anonymous, .form-container input {
+        .anonymous {
             font-weight: bold;
             color: #dfeffa;
-            font-size: 15px;
         }
-        .post-id, .form-container input {
+        .post-id {
             font-family: monospace;
             color: #B294BA;
             margin-left: 10px;
-            font-size: 15px;
         }
         .post-time {
             font-size: 0.85em;
             color: #bbb;
         }
-        .post-content, .form-container textarea {
-            margin-top: 10px;
+        .post-content {
+            margin-top: 5px;
             color: #ddd;
             font-size: 14px;
         }
-        .highlight {
-            color: #A7B063;
-        }
-        .replies {
-            margin-top: 10px;
-            font-size: 0.85em;
-            color: #67a1f8;
+        .post img {
+            max-width: 100%;
+            margin-top: 5px;
+            border-radius: 4px;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
         }
         .form-container input, .form-container textarea {
-            width: 100%;
+            width: 95%;
             background-color: #333;
             color: #ccc;
             border: 1px solid #555;
             border-radius: 4px;
-            padding: 10px;
+            padding: 5px;
             margin-bottom: 10px;
         }
         .form-container button {
             background-color: #67a1f8;
             color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 8px 12px;
             cursor: pointer;
         }
         .form-container button:hover {
             background-color: #5591d8;
         }
+        .form-header {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #ccc;
+            font-size: 14px;
+        }
     </style>
     <script type="module">
-    // Import Firebase functions
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
     import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDf_y4A41vedtZgpEIQzWQgWbqtRd6-Dyg",
@@ -90,47 +91,46 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
     const db = getFirestore(app);
-
-    console.log("Firebase initialized");
-
-    // Collect visitor data (already implemented)
-    async function collectAndSendData() {
-        // Your existing data collection logic
-    }
+    const storage = getStorage(app);
 
     window.onload = async () => {
-        collectAndSendData();
-
-        // Handle form submission for new posts
+        // Form submission event
         const postForm = document.getElementById('postForm');
         postForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Prevent the page from refreshing
+            e.preventDefault();
 
             const postContent = document.getElementById('postContent').value;
             const postTime = new Date().toISOString();
             const anonymous = 'Anonymous';
+            const fileInput = document.getElementById('fileInput').files[0];
+            let imageUrl = '';
 
-            // Store post data in Firestore
+            if (fileInput) {
+                const fileRef = ref(storage, `images/${fileInput.name}`);
+                const snapshot = await uploadBytes(fileRef, fileInput);
+                imageUrl = await getDownloadURL(snapshot.ref);
+            }
+
             try {
                 await addDoc(collection(db, "posts"), {
                     content: postContent,
                     time: postTime,
-                    user: anonymous
+                    user: anonymous,
+                    imageUrl: imageUrl
                 });
                 alert('Post added successfully!');
-                postForm.reset(); // Clear the form
-                loadPosts(); // Reload posts after submission
+                postForm.reset();
+                loadPosts();
             } catch (error) {
                 console.error("Error adding post:", error);
             }
         });
 
-        // Load existing posts from Firestore
+        // Function to load posts from Firestore
         async function loadPosts() {
             const postsContainer = document.getElementById('postsContainer');
-            postsContainer.innerHTML = ''; // Clear existing posts
+            postsContainer.innerHTML = '';
 
             const querySnapshot = await getDocs(collection(db, "posts"));
             querySnapshot.forEach((doc) => {
@@ -140,7 +140,7 @@
                 postElement.innerHTML = `
                     <div class="post-header">
                         <div>
-                            <span class="anonymous">${postData.user}</span> 
+                            <span class="anonymous">${postData.user}</span>
                             <span class="post-id">ID:generated</span>
                         </div>
                         <div>
@@ -149,31 +149,34 @@
                     </div>
                     <div class="post-content">
                         ${postData.content}
+                        ${postData.imageUrl ? `<img src="${postData.imageUrl}" alt="Image">` : ''}
                     </div>
                 `;
                 postsContainer.appendChild(postElement);
             });
         }
 
-        // Load posts when page loads
+        // Load posts on page load
         loadPosts();
     };
     </script>
 </head>
 <body>
 
-<h1 style="color: #fff;">Anonymous Posting</h1>
+<h1 style="color: #fff;">hellonearth</h1>
 
 <!-- New Post Form -->
 <div class="form-container">
+    <div class="form-header">Create a Post</div>
     <form id="postForm">
-        <textarea id="postContent" rows="4" placeholder="Enter your post here..."></textarea>
+        <textarea id="postContent" rows="3" placeholder="Enter your post here..."></textarea>
+        <input type="file" id="fileInput">
         <button type="submit">Post</button>
     </form>
 </div>
 
 <!-- Display posts -->
 <div id="postsContainer"></div>
-
+    
 </body>
 </html>
