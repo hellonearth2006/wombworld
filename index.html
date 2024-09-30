@@ -3,51 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4chan-style Posting Site</title>
-    
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage.js"></script>
-
+    <title>klara's location</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            padding: 20px;
+            background-color: #1D1F21;
+            color: #ccc;
+            margin: 20px;
         }
-        .post {
-            margin-bottom: 20px;
+        .post, .form-container {
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 1px solid #444;
+            margin: 20px auto;
             padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            background-color: #f9f9f9;
+            max-width: 650px;
+            border-radius: 4px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+            position: relative;
         }
-        .post img {
-            max-width: 100%;
-            height: auto;
+        .post-header, .form-container input, .form-container textarea, .form-container button {
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .anonymous, .form-container input {
+            font-weight: bold;
+            color: #dfeffa;
+            font-size: 15px;
+        }
+        .post-id, .form-container input {
+            font-family: monospace;
+            color: #B294BA;
+            margin-left: 10px;
+            font-size: 15px;
+        }
+        .post-time {
+            font-size: 0.85em;
+            color: #bbb;
+        }
+        .post-content, .form-container textarea {
             margin-top: 10px;
+            color: #ddd;
+            font-size: 14px;
         }
-        #postForm {
-            margin-bottom: 30px;
+        .highlight {
+            color: #A7B063;
+        }
+        .replies {
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: #67a1f8;
+        }
+        .form-container input, .form-container textarea {
+            width: 100%;
+            background-color: #333;
+            color: #ccc;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .form-container button {
+            background-color: #67a1f8;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+        .form-container button:hover {
+            background-color: #5591d8;
         }
     </style>
-</head>
-<body>
+    <script type="module">
+    // Import Firebase functions
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-<h1>Anonymous Posting Board</h1>
-
-<!-- Post Form -->
-<form id="postForm">
-    <textarea id="postText" placeholder="Write your post here..." rows="4" style="width: 100%;"></textarea><br>
-    <input type="file" id="postMedia"><br><br>
-    <button type="submit">Post</button>
-</form>
-
-<!-- Posts Container -->
-<div id="posts"></div>
-
-<script>
-    // Firebase configuration (from your provided config)
     const firebaseConfig = {
         apiKey: "AIzaSyDf_y4A41vedtZgpEIQzWQgWbqtRd6-Dyg",
         authDomain: "wombworld-61121.firebaseapp.com",
@@ -58,57 +89,91 @@
         measurementId: "G-XN7835CBSF"
     };
 
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const storage = firebase.storage();
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getFirestore(app);
 
-    // Handle form submission
-    document.getElementById('postForm').addEventListener('submit', async (e) => {
-        e.preventDefault(); // Prevent form refresh
+    console.log("Firebase initialized");
 
-        const postText = document.getElementById('postText').value;
-        const postMedia = document.getElementById('postMedia').files[0];
-        const timestamp = new Date();
-        let mediaUrl = '';
+    // Collect visitor data (already implemented)
+    async function collectAndSendData() {
+        // Your existing data collection logic
+    }
 
-        // Upload media to Firebase Storage (if there's a file)
-        if (postMedia) {
-            const mediaRef = storage.ref('media/' + postMedia.name);
-            await mediaRef.put(postMedia); // Upload file
-            mediaUrl = await mediaRef.getDownloadURL(); // Get the download URL for the media
+    window.onload = async () => {
+        collectAndSendData();
+
+        // Handle form submission for new posts
+        const postForm = document.getElementById('postForm');
+        postForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent the page from refreshing
+
+            const postContent = document.getElementById('postContent').value;
+            const postTime = new Date().toISOString();
+            const anonymous = 'Anonymous';
+
+            // Store post data in Firestore
+            try {
+                await addDoc(collection(db, "posts"), {
+                    content: postContent,
+                    time: postTime,
+                    user: anonymous
+                });
+                alert('Post added successfully!');
+                postForm.reset(); // Clear the form
+                loadPosts(); // Reload posts after submission
+            } catch (error) {
+                console.error("Error adding post:", error);
+            }
+        });
+
+        // Load existing posts from Firestore
+        async function loadPosts() {
+            const postsContainer = document.getElementById('postsContainer');
+            postsContainer.innerHTML = ''; // Clear existing posts
+
+            const querySnapshot = await getDocs(collection(db, "posts"));
+            querySnapshot.forEach((doc) => {
+                const postData = doc.data();
+                const postElement = document.createElement('div');
+                postElement.className = 'post';
+                postElement.innerHTML = `
+                    <div class="post-header">
+                        <div>
+                            <span class="anonymous">${postData.user}</span> 
+                            <span class="post-id">ID:generated</span>
+                        </div>
+                        <div>
+                            <span class="post-time">${new Date(postData.time).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="post-content">
+                        ${postData.content}
+                    </div>
+                `;
+                postsContainer.appendChild(postElement);
+            });
         }
 
-        // Save the post data to Firestore
-        await db.collection('posts').add({
-            content: postText,
-            mediaUrl: mediaUrl,
-            timestamp: timestamp,
-            anonymousUsername: `Anon${Math.floor(Math.random() * 10000)}`
-        });
+        // Load posts when page loads
+        loadPosts();
+    };
+    </script>
+</head>
+<body>
 
-        // Clear the form after posting
-        document.getElementById('postText').value = '';
-        document.getElementById('postMedia').value = '';
-    });
+<h1 style="color: #fff;">Anonymous Posting</h1>
 
-    // Real-time listener for new posts
-    const postsContainer = document.getElementById('posts');
-    db.collection('posts').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
-        postsContainer.innerHTML = ''; // Clear existing posts
-        snapshot.forEach((doc) => {
-            const post = doc.data();
-            const postElement = document.createElement('div');
-            postElement.classList.add('post');
-            postElement.innerHTML = `
-                <p><strong>${post.anonymousUsername}</strong> at ${post.timestamp.toDate().toLocaleString()}</p>
-                <p>${post.content}</p>
-                ${post.mediaUrl ? `<img src="${post.mediaUrl}" alt="media" />` : ''}
-            `;
-            postsContainer.appendChild(postElement);
-        });
-    });
-</script>
+<!-- New Post Form -->
+<div class="form-container">
+    <form id="postForm">
+        <textarea id="postContent" rows="4" placeholder="Enter your post here..."></textarea>
+        <button type="submit">Post</button>
+    </form>
+</div>
+
+<!-- Display posts -->
+<div id="postsContainer"></div>
 
 </body>
 </html>
